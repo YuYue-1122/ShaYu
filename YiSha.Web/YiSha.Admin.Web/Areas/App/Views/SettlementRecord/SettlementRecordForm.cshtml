@@ -1,0 +1,128 @@
+﻿@{
+    Layout = "~/Views/Shared/_FormWhite.cshtml";
+}
+@section header{
+    <script src="~/common/js/common.js"></script>
+}
+<div class="wrapper animated fadeInRight">
+    <form id="form" class="form-horizontal m">
+        <div class="form-group">
+            <label class="col-sm-4 control-label ">结算日期<font class="red"> *</font></label>
+            <div class="col-sm-7">
+                <input id="settlementDate" col="SettlementDate" type="text" class="form-control" placeholder="yyyy-MM-dd" autocomplete="off" />
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-4 control-label ">总收益t+1(最多输入两位小数)<font class="red"> *</font></label>
+            <div class="col-sm-7">
+                <input id="settlementAmount" col="SettlementAmount" type="text" class="form-control" />
+            </div>
+            <div class="col-sm-1" style="padding:6px 12px;">
+                （元）
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-4 control-label ">安装总数（我方平台）<font class="red"></font></label>
+            <div class="col-sm-7">
+                <input id="installCount" col="InstallCount" type="text" class="form-control" readonly="readonly" />
+            </div>
+            <div class="col-sm-1" style="padding:6px 12px;">
+                （个）
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-4 control-label ">总收益t+7(最多输入两位小数)</label>
+            <div class="col-sm-7">
+                <input id="actualSettlementAmount" col="ActualSettlementAmount" type="text" class="form-control" />
+            </div>
+            <div class="col-sm-1" style="padding:6px 12px;">
+                （元）
+            </div>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+    var id = ys.request("id");
+    $(function () {
+        getForm();
+
+        $('#form').validate({
+            rules: {
+                settlementDate: { required: true },
+                installCount: { required: true, number: true  },
+                settlementAmount: { required: true,number:true }
+            }
+        });
+        laydate.render({
+            elem: '#settlementDate',
+            type: 'date',
+            done: function (value, data) {
+                getInstallCount(value);
+            }
+        });
+    });
+
+    function getForm() {
+        if (id > 0) {
+            ys.ajax({
+                url: '@Url.Content("~/App/SettlementRecord/GetFormJson")' + '?id=' + id,
+                type: 'get',
+                success: function (obj) {
+                    if (obj.Tag == 1) {
+                        obj.Data.SettlementDate = new Date(obj.Data.SettlementDate).format("yyyy-MM-dd");
+                        $('#form').setWebControls(obj.Data);
+                    }
+                }
+            });
+        }
+        else {
+            var dateTime = new Date();
+            dateTime = dateTime.setDate(dateTime.getDate() + 1);
+
+            dateTime = new Date(dateTime).format("yyyy-MM-dd");
+            var defaultData = {
+                SettlementDate: dateTime
+            };
+            $('#form').setWebControls(defaultData);
+        }
+    }
+
+    function saveForm(index) {
+        if ($('#form').validate().form()) {
+            var postData = $('#form').getWebControls({ Id: id });
+            ys.ajax({
+                url: '@Url.Content("~/App/SettlementRecord/SaveFormJson")',
+                type: 'post',
+                data: postData,
+                success: function (obj) {
+                    if (obj.Tag == 1) {
+                        ys.msgSuccess(obj.Message);
+                        parent.searchGrid();
+                        parent.layer.close(index);
+                    }
+                    else {
+                        ys.msgError(obj.Message);
+                    }
+                }
+            });
+        }
+    }
+
+    function getInstallCount(installDate) {
+        ys.ajax({
+            url: '@Url.Content("~/App/AppInstallRecord/GetInstallCount")',
+            type: 'get',
+            data: { installDate: installDate},
+                success: function (obj) {
+                    if (obj.Tag == 1) {
+                        $("#installCount").val(obj.Data);
+                    }
+                    else {
+                        ys.msgError(obj.Message);
+                    }
+                }
+            });
+    }
+</script>
+

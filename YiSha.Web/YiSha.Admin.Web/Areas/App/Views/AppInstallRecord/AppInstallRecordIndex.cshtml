@@ -1,0 +1,231 @@
+﻿@{
+    Layout = "~/Views/Shared/_Index.cshtml";
+}
+@section header{
+    <script src="~/common/js/common.js"></script>
+}
+<div class="container-div">
+    <div class="row">
+        <div id="searchDiv" class="col-sm-12 search-collapse">
+            <div class="select-list">
+                <ul>
+                    <li>
+                        用户名：<input id="userName" col="UserName" type="text" />
+                    </li>
+                    <li>
+                        操作员：<input id="realName" col="RealName" type="text" />
+                    </li>
+                    <li>
+                        日期：
+                        <input type="text" id="installDate" col="InstallDate" placeholder="yyyy-MM-dd" />
+                        到
+                        <input type="text" id="installEndDate" col="InstallEndDate" placeholder="yyyy-MM-dd" />
+                    </li>
+                    <li>
+                        <a id="btnSearch" class="btn btn-primary btn-sm" onclick="searchGrid()"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                        <a id="btnExport" class="btn btn-warning btn-sm" onclick="exportForm()"><i class="fa fa-download"></i> 导出</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        @*<div class="btn-group-sm hidden-xs" id="toolbar">
+                    <a id="btnExport" class="btn btn-warning" onclick="exportForm()"><i class="fa fa-download"></i> 导出</a>
+                <a id="btnAdd" class="btn btn-success" onclick="showSaveForm(true)"><i class="fa fa-plus"></i> 新增</a>
+                    <a id="btnEdit" class="btn btn-primary disabled" onclick="showSaveForm(false)"><i class="fa fa-edit"></i> 修改</a>
+                    <a id="btnDelete" class="btn btn-danger disabled" onclick="deleteForm()"><i class="fa fa-remove"></i> 删除</a>
+            </div>*@
+        <div class="col-sm-12 select-table table-striped">
+            <table id="gridTable" data-mobile-responsive="true"></table>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function () {
+        initGrid();
+        var startDate = laydate.render({
+            elem: '#installDate',
+            max: $('#installEndDate').val(),
+            theme: 'molv',
+            trigger: 'click',
+            done: function (value, date) {
+                // 结束时间大于开始时间
+                if (value !== '') {
+                    endDate.config.min.year = date.year;
+                    endDate.config.min.month = date.month - 1;
+                    endDate.config.min.date = date.date;
+                } else {
+                    endDate.config.min.year = '';
+                    endDate.config.min.month = '';
+                    endDate.config.min.date = '';
+                }
+            }
+        });
+
+        var endDate = laydate.render({
+            elem: '#installEndDate',
+            min: $('#installDate').val(),
+            theme: 'molv',
+            trigger: 'click',
+            done: function (value, date) {
+                // 开始时间小于结束时间
+                if (value !== '') {
+                    startDate.config.max.year = date.year;
+                    startDate.config.max.month = date.month - 1;
+                    startDate.config.max.date = date.date;
+                } else {
+                    startDate.config.max.year = '';
+                    startDate.config.max.month = '';
+                    startDate.config.max.date = '';
+                }
+            }
+        });
+    });
+
+    function initGrid() {
+        var queryUrl = '@Url.Content("~/App/AppInstallRecord/GetPageListJson")';
+        $('#gridTable').ysTable({
+            url: queryUrl,
+            sortName: 'InstallDate',
+            sortOrder: 'Desc',
+            columns: [
+                { checkbox: true, visible: true },
+                { field: 'Id', title: 'Id', visible: false },
+                {
+                    field: 'InstallDate', title: '创建时间',
+                    formatter: function (value, row, index) {
+                        return (new Date(value).format("yyyy-MM-dd"));
+                    }
+                },
+                { field: 'RealName', title: '用户姓名' },
+                { field: 'UserName', title: '用户名' },
+                { field: 'StoreName', title: '门店' },
+                { field: 'IMEI', title: 'IMEI' },
+                { field: 'AppCount', title: '下载安装数' },
+                {
+                    field: 'UnitPrice', title: '预估/实际单价',
+                    formatter: function (value, row, index) {
+                        if (value) {
+                            var showStr = "￥" + value.toFixed(2)
+                            if (row.ActualUnitPrice) {
+                                showStr += "/￥" + row.ActualUnitPrice.toFixed(2);
+                            }
+                            return showStr;
+                        }
+                    }
+                },
+                {
+                    field: 'ClerkProportion', title: '店员预估收益',
+                    formatter: function (value, row, index) {
+                        if (row.UnitPrice) {
+                            return "￥" + (row.UnitPrice * row.AppCount * value).toFixed(2);
+                        }
+                    }
+                },
+                {
+                    field: 'PartnerProportion', title: '合作伙伴预估收益',
+                    formatter: function (value, row, index) {
+                        if (row.UnitPrice) {
+                            return "￥" + (row.UnitPrice * row.AppCount * value).toFixed(2);
+                        }
+                    }
+                },
+                {
+                    field: 'AgentProportion', title: '代理商预估收益',
+                    formatter: function (value, row, index) {
+                        if (row.UnitPrice) {
+                            return "￥" + (row.UnitPrice * row.AppCount * value).toFixed(2);
+                        }
+                    }
+                },
+                {
+                    field: 'ClerkProportion', title: '店员实际收益',
+                    formatter: function (value, row, index) {
+                        if (row.UnitPrice) {
+                            return "￥" + (row.ActualUnitPrice * row.AppCount * value).toFixed(2);
+                        }
+                    }
+                },
+                {
+                    field: 'PartnerProportion', title: '合作伙伴实际收益',
+                    formatter: function (value, row, index) {
+                        if (row.UnitPrice) {
+                            return "￥" + (row.ActualUnitPrice * row.AppCount * value).toFixed(2);
+                        }
+                    }
+                },
+                {
+                    field: 'AgentProportion', title: '代理商实际收益',
+                    formatter: function (value, row, index) {
+                        if (row.UnitPrice) {
+                            return "￥" + (row.ActualUnitPrice * row.AppCount * value).toFixed(2);
+                        }
+                    }
+                },
+                { field: 'PartnerName', title: '合作伙伴' },
+                { field: 'AgentName', title: '经销商' }
+            ],
+            queryParams: function (params) {
+                var pagination = $('#gridTable').ysTable('getPagination', params);
+                var queryString = $('#searchDiv').getWebControls(pagination);
+                queryString.Month = getQueryString("month");
+                return queryString;
+            }
+        });
+    }
+
+    function searchGrid() {
+        $('#gridTable').ysTable('search');
+        resetToolbarStatus();
+    }
+
+    function showSaveForm(bAdd) {
+        var id = 0;
+        if (!bAdd) {
+            var selectedRow = $('#gridTable').bootstrapTable('getSelections');
+            if (!ys.checkRowEdit(selectedRow)) {
+                return;
+            }
+            else {
+                id = selectedRow[0].Id;
+            }
+        }
+        ys.openDialog({
+            title: id > 0 ? '编辑' : '添加',
+            content: '@Url.Content("~/App/AppInstallRecord/AppInstallRecordForm")' + '?id=' + id,
+            width: '768px',
+            height: '550px',
+            callback: function (index, layero) {
+                var iframeWin = window[layero.find('iframe')[0]['name']];
+                iframeWin.saveForm(index);
+            }
+        });
+    }
+
+    function deleteForm() {
+        var selectedRow = $('#gridTable').bootstrapTable('getSelections');
+        if (ys.checkRowDelete(selectedRow)) {
+            ys.confirm('确认要删除选中的' + selectedRow.length + '条数据吗？', function () {
+                var ids = ys.getIds(selectedRow);
+                ys.ajax({
+                    url: '@Url.Content("~/App/AppInstallRecord/DeleteFormJson")' + '?ids=' + ids,
+                    type: 'post',
+                    success: function (obj) {
+                        if (obj.Tag == 1) {
+                            ys.msgSuccess(obj.Message);
+                            searchGrid();
+                        }
+                        else {
+                            ys.msgError(obj.Message);
+                        }
+                    }
+                });
+            });
+        }
+    }
+    function exportForm() {
+        var url = '@Url.Content("~/App/AppInstallRecord/ExportAllJson")';
+        var postData = $("#searchDiv").getWebControls();
+        ys.exportExcel(url, postData);
+    }
+</script>
